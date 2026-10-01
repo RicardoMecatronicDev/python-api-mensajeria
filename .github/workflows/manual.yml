@@ -21,13 +21,13 @@ env:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: ${{ inputs.environment }}
     permissions:
       id-token: write
       contents: read
     steps:
-      - uses: azure/login@v2
+      - uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -39,7 +39,7 @@ jobs:
 
   approve:
     needs: validate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: ${{ inputs.environment == 'prod' && 'approver_prod' || 'approver_noprod' }}
     steps:
       - run: echo "Aprobado"

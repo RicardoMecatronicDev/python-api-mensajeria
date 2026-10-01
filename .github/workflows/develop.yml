@@ -24,7 +24,7 @@ jobs:
 
   package:
     needs: ci
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: noprod
     permissions:
       id-token: write
@@ -32,10 +32,10 @@ jobs:
     outputs:
       sha_tag: ${{ steps.tag.outputs.sha_tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - id: tag
         run: echo "sha_tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-      - uses: azure/login@v2
+      - uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -55,7 +55,7 @@ jobs:
 
   version:
     needs: package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: noprod
     permissions:
       id-token: write
@@ -63,11 +63,11 @@ jobs:
     outputs:
       new_tag: ${{ steps.tag.outputs.new_tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - id: tag
-        uses: mathieudutour/github-tag-action@v6.2
+        uses: mathieudutour/github-tag-action@v7
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           tag_prefix: v
@@ -75,7 +75,7 @@ jobs:
           pre_release_branches: develop
           append_to_pre_release_tag: rc
           default_bump: patch
-      - uses: azure/login@v2
+      - uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -83,7 +83,7 @@ jobs:
       - run: az acr login -n "$ACR_NOPROD"
       - name: Agregar tag de version a la imagen
         run: |
-          docker buildx imagetools create \
+          docker buildx imagetools create --prefer-index=false \
             -t "$ACR_NOPROD.azurecr.io/$IMAGE:${{ steps.tag.outputs.new_tag }}" \
             "$ACR_NOPROD.azurecr.io/$IMAGE:${{ needs.package.outputs.sha_tag }}"
 

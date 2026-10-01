@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: ${{ inputs.environment }}
     env:
       APP_NAME: ca-mensajeria-${{ inputs.environment }}-api
@@ -25,10 +25,10 @@ jobs:
       APIM_URL: https://apim-mensajeria-${{ inputs.environment }}-01.azure-api.net
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Azure Login (OIDC)
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -41,7 +41,7 @@ jobs:
             --image "$ACR_NAME.azurecr.io/python-api-mensajeria:${{ inputs.image_tag }}"
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
