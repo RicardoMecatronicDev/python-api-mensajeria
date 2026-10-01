@@ -2,6 +2,11 @@ name: ci-reutilizable
 
 on:
   workflow_call:
+    inputs:
+      sonar:
+        description: Ejecutar el analisis de SonarCloud
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -41,6 +46,7 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: pytest
       - name: SonarCloud
+        if: ${{ inputs.sonar }}
         uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -49,6 +55,7 @@ jobs:
           args: >
             -Dsonar.organization=${{ env.SONAR_ORG }}
             -Dsonar.projectKey=${{ env.SONAR_PROJECT }}
+            -Dsonar.branch.name=master
             -Dsonar.sources=app
             -Dsonar.tests=tests
             -Dsonar.python.coverage.reportPaths=coverage.xml
