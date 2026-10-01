@@ -1,0 +1,74 @@
+name: deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      image_tag:
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      APP_NAME: ca-mensajeria-${{ inputs.environment }}-api
+      RG_NAME: rg-mensajeria-${{ inputs.environment }}
+      ACR_NAME: ${{ inputs.environment == 'prod' && 'acrmensajeriaprod01' || 'acrmensajerianoprod01' }}
+      APIM_URL: https://apim-mensajeria-${{ inputs.environment }}-01.azure-api.net
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Desplegar imagen
+        run: |
+          az containerapp ingress update -n "$APP_NAME" -g "$RG_NAME" --target-port 8000
+          az containerapp update -n "$APP_NAME" -g "$RG_NAME" \
+            --image "$ACR_NAME.azurecr.io/python-api-mensajeria:${{ inputs.image_tag }}"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Smoke test
+        env:
+          API_KEY: ${{ secrets.API_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          JWT=$(python scripts/gen_jwt.py)
+          echo "::add-mask::$JWT"
+          for i in $(seq 1 10); do
+            RESP=$(curl -s -X POST "$APIM_URL/DevOps" \
+              -H "X-Parse-REST-API-Key: $API_KEY" \
+              -H "X-JWT-KWY: $JWT" \
+              -H "Content-Type: application/json" \
+              -d '{ "message": "This is a test", "to": "Juan Perez", "from": "Rita Asturia", "timeToLifeSec": 45 }' || true)
+            echo "Intento $i: $RESP"
+            if echo "$RESP" | grep -q "Hello Juan Perez your message will be sent"; then
+              exit 0
+            fi
+            JWT=$(python scripts/gen_jwt.py)
+            echo "::add-mask::$JWT"
+            sleep 15
+          done
+          echo "El smoke test fallo"
+          exit 1
