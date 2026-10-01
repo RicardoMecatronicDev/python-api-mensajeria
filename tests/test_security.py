@@ -46,7 +46,9 @@ def test_jwt_reutilizado_401(client, headers):
 
 
 def test_cada_jwt_es_unico():
-    assert create_jwt() != create_jwt()
+    primero = create_jwt()
+    segundo = create_jwt()
+    assert primero != segundo
 
 
 def test_api_key_constante_correcta():
