@@ -1,0 +1,13 @@
+name: CI
+
+on:
+  push:
+    branches: ["feature/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/_ci.yml
+    secrets: inherit
