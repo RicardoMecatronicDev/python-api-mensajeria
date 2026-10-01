@@ -2,7 +2,7 @@ import time
 
 import jwt
 
-from app.security import JWT_ALGORITHM, JWT_SECRET, create_jwt
+from app.security import JWT_ALGORITHM, JWT_SECRET, create_jwt, decode_jwt
 from tests.conftest import API_KEY, PAYLOAD
 
 
@@ -53,3 +53,14 @@ def test_cada_jwt_es_unico():
 
 def test_api_key_constante_correcta():
     assert API_KEY == "2f5ae96c-b558-4c7b-a590-a501ae1c3f6c"
+
+
+def test_jwt_con_duracion_personalizada():
+    treinta_dias = 30 * 24 * 3600
+    claims = decode_jwt(create_jwt(ttl=treinta_dias))
+    assert claims["exp"] - claims["iat"] == treinta_dias
+
+
+def test_jwt_por_defecto_dura_cinco_minutos():
+    claims = decode_jwt(create_jwt())
+    assert claims["exp"] - claims["iat"] == 300
